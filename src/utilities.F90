@@ -2,10 +2,20 @@ module utilities
 
    use kind_parameters
    use parameters, only: pi
+   use, intrinsic :: iso_c_binding, only: c_int, c_int32_t
 
    implicit none
 
    public
+
+   interface
+      ! int usleep(useconds_t useconds)
+      function c_usleep(useconds) bind(c, name='usleep')
+         import :: c_int, c_int32_t
+         integer(kind=c_int32_t), value :: useconds
+         integer(kind=c_int)            :: c_usleep
+      end function c_usleep
+   end interface
 
 contains
 
@@ -48,5 +58,10 @@ contains
 
       trait = a * volumes**b
    end subroutine set_allometric
+
+   
+      
+
+
 
 end module utilities

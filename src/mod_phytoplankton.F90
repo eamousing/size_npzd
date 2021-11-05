@@ -73,10 +73,11 @@ contains
 
    end subroutine init_phyto
 
-   subroutine tstep_phyto(self, te, no3, irr, dt)
+   subroutine tstep_phyto(self, te, no3, don, irr, dt)
       type(phytoplankton), intent(inout) :: self
       real(dp), intent(in) :: te
       real(dp), intent(inout) :: no3
+      real(dp), intent(inout) :: don
       real(dp), intent(in) :: irr
       real(dp), intent(in) :: dt !! time step length
 
@@ -85,6 +86,7 @@ contains
       real(dp) :: vno3(self%nb)
       real(dp) :: vc(self%nb)
       real(dp) :: vchla(self%nb)
+      real(dp) :: mort(self%nb)
 
       ! Calculate temperature dependent
       gamma_t = exp(tsens * (te - tref))
@@ -95,8 +97,11 @@ contains
       ! Photosynthesis
       call photosynthesis(self, qno3, irr, vno3, gamma_t, vc, vchla)
 
+      ! Mortality
+      call nat_mort(self, mort)
+
       ! Update biomasses
-      call update_biom(self, vc, vno3, vchla, no3, dt)
+      call update_biom(self, vc, vno3, vchla, no3, don, mort, dt)
 
    end subroutine tstep_phyto
 
@@ -174,18 +179,28 @@ contains
       vchla = pchla * vno3
    end subroutine photosynthesis
 
-   subroutine update_biom(self, vc, vno3, vchla, no3, dt)
+   subroutine update_biom(self, vc, vno3, vchla, no3, don, mort, dt)
       type(phytoplankton), intent(inout) :: self
       real(dp), intent(in) :: vc(:)
       real(dp), intent(in) :: vno3(:)
       real(dp), intent(in) :: vchla(:)
       real(dp), intent(inout) :: no3
+      real(dp), intent(inout) :: don
+      real(dp), intent(in) :: mort(:)
       real(dp), intent(in) :: dt
 
-      self%biom_c = self%biom_c + (self%biom_c * vc * dt)
-      self%biom_no3 = self%biom_no3 + (self%biom_c * vno3 * dt)
-      self%chla = self%chla + (self%biom_c * vchla * dt)
+      self%biom_c = self%biom_c + (self%biom_c * vc * dt) - (mort * dt)
+      self%biom_no3 = self%biom_no3 + (self%biom_c * vno3 * dt) - (mort * (self%biom_no3/self%biom_c) * dt)
+      self%chla = self%chla + (self%biom_c * vchla * dt) - (mort * (self%chla/self%biom_c) * dt)
       no3 = no3 - sum(self%biom_c * vno3 * dt)
+      don = don + sum(mort * (self%biom_no3/self%biom_c) * dt)
    end subroutine update_biom
+
+   subroutine nat_mort(self, mort)
+      type(phytoplankton), intent(in) :: self
+      real(dp), intent(out) :: mort(:)
+
+      mort = self%biom_c(:) * 0.02_dp
+   end subroutine nat_mort
 
 end module mod_phytoplankton

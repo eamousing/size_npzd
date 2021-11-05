@@ -3,6 +3,7 @@ program size_npzd
    use kind_parameters
    use mod_phytoplankton
    use mod_zooplankton
+   use utilities
 
    implicit none
 
@@ -14,11 +15,13 @@ program size_npzd
    type(zooplankton) :: zoo
 
    real(dp) :: no3 = 10.0_dp
+   real(dp) :: don = 0.0_dp
    real(dp) :: te = 283.15_dp
    real(dp) :: irr = 1.3e6_dp
    real(dp) :: dt = 0.0417
 
-   integer :: i
+   integer :: i, rc, t
+   t = 10 * 1000
 
    ! Check if number of trophic group have been specified
    if (command_argument_count() .ne. 2) then
@@ -36,10 +39,12 @@ program size_npzd
    call init_phyto(phyto, nb_phy)
    call init_zoo(zoo, nb_zoo)
 
-   do i = 1, 20000
-      call tstep_phyto(phyto, te, no3, irr, dt)
-      call tstep_zoo(zoo, phyto, te, no3, dt)
-      print *, i, no3, sum(phyto%biom_no3(:)), sum(zoo%biom_no3(:)), no3 + sum(phyto%biom_no3(:)) + sum(zoo%biom_no3(:))
+   do i = 1, 8000
+      call tstep_phyto(phyto, te, no3, don, irr, dt)
+      ! call tstep_zoo(zoo, phyto, te, no3, dt)
+      ! print *, i, no3, sum(phyto%biom_no3(:)), sum(zoo%biom_no3(:)), no3 + sum(phyto%biom_no3(:)) + sum(zoo%biom_no3(:)), don
+      print *, i, no3, sum(phyto%biom_no3(:)), don
+      rc = c_usleep(t)
    end do
 
 end program size_npzd
